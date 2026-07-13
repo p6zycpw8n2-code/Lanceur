@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-13T17:36:52.914Z",
+  "updated": "2026-07-13T17:40:39.158Z",
   "categories": [
     {
       "id": "c1",
@@ -492,7 +492,8 @@
           "label": "Sign Up - Replit",
           "url": "https://replit.com/~"
         }
-      ]
+      ],
+      "bg": "img/musique.jpg"
     },
     {
       "id": "c2",
