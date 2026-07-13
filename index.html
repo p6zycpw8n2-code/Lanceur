@@ -88,7 +88,7 @@
   .delcat:hover{background:rgba(196,98,63,.12)}
 
   /* grid */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
+  .grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:12px}
   .tile{
     position:relative;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
     padding:16px 12px 13px;display:flex;flex-direction:column;align-items:center;gap:11px;
@@ -120,6 +120,16 @@
   body.editing .addtile{display:flex}
   .addtile:hover{color:var(--brass);border-color:var(--brass-line)}
   .addtile svg{width:20px;height:20px}
+
+  .tile.folder .ic{background:var(--brass-soft)}
+  .tile.folder .ic svg{width:22px;height:22px;color:var(--brass)}
+  .tile.folder .fcount{position:absolute;top:7px;left:7px;font-size:10px;color:var(--brass);background:rgba(201,162,75,.12);border:1px solid var(--brass-line);border-radius:999px;padding:1px 6px;font-weight:600;line-height:1.5}
+  .tile.dropinto{outline:2px solid var(--brass);outline-offset:2px;background:var(--brass-soft)}
+  .backbtn{font-family:var(--sans);font-size:20px;line-height:1;color:var(--muted);border:1px solid var(--line);width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-right:2px;transition:.15s}
+  .backbtn:hover{color:var(--parchment);border-color:var(--line-2)}
+  .crumbsep{color:var(--faint);margin:0 3px;font-size:.7em}
+  .addtile.addfolder{color:var(--faint)}
+  .addtile.addfolder:hover{color:var(--brass);border-color:var(--brass-line)}
 
   .empty{color:var(--faint);text-align:center;padding:50px 0;font-size:14px}
 
@@ -178,9 +188,12 @@
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink-3);border:1px solid var(--line-2);color:var(--parchment);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;transition:.25s;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  @media(max-width:900px){
+    .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  }
   @media(max-width:560px){
     .wrap{padding:16px 15px 80px}
-    .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+    .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .hero{padding:30px 0 18px}
     .tabs{justify-content:flex-start}
   }
@@ -337,9 +350,15 @@ async function loadData(){
 }
 
 /* ---------- render ---------- */
+let openFolder=null, drag=null;
+const isFolder=t=>!!(t&&t.type==='folder');
+function curList(){ const c=data.categories[activeCat]; if(!c)return[]; return (openFolder!=null&&isFolder(c.tiles[openFolder]))?c.tiles[openFolder].tiles:c.tiles; }
+function curFolderName(){ const c=data.categories[activeCat]; if(!c)return''; return (openFolder!=null&&isFolder(c.tiles[openFolder]))?c.tiles[openFolder].label:c.name; }
+
 function render(){
   renderTabs();
   const ac=data.categories[activeCat]; applyBg(ac?ac.bg:'');
+  if(ac && openFolder!=null && !isFolder(ac.tiles[openFolder])) openFolder=null;
   const q=$('#q').value.trim().toLowerCase();
   if(q){ renderFilter(q); } else { document.body.classList.remove('filtering'); renderCategory(); }
 }
@@ -350,59 +369,113 @@ function renderTabs(){
     const b=document.createElement('button');
     b.className='tab'+(i===activeCat?' active':'');
     b.innerHTML=`${esc(c.name)} <span class="n">${c.tiles.length}</span>`;
-    b.onclick=()=>{activeCat=i; localStorage.setItem(LS_ACTIVE,String(i)); $('#q').value=''; syncHint(); render();};
+    b.onclick=()=>{activeCat=i; openFolder=null; localStorage.setItem(LS_ACTIVE,String(i)); $('#q').value=''; syncHint(); render();};
     t.appendChild(b);
   });
   if(editing){
-    const a=document.createElement('button');
-    a.className='tab addcat'; a.innerHTML='+ catégorie';
+    const a=document.createElement('button'); a.className='tab addcat'; a.innerHTML='+ catégorie';
     a.onclick=addCategory; t.appendChild(a);
   }
 }
 
-function tileEl(c,ci,t,ti,showCat){
-  const el=document.createElement(editing?'div':'a');
+function attachDrag(el,ti){
+  el.draggable=true;
+  el.addEventListener('dragstart',e=>{drag={ti,isFolder:isFolder(curList()[ti])};el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');$$('.tile').forEach(x=>x.classList.remove('dropbefore','dropinto'));});
+}
+
+function linkTile(t,ti,opts){
+  opts=opts||{};
+  const live=editing&&!opts.plain;
+  const el=document.createElement(live?'div':'a');
   el.className='tile';
-  if(!editing){ el.href=t.url; el.target='_blank'; el.rel='noopener'; }
+  if(!live){ el.href=t.url; el.target='_blank'; el.rel='noopener'; }
   el.style.setProperty('--tc',tileColor(t.url));
   const h=host(t.url), initial=(t.label||h||'?').trim().charAt(0).toUpperCase();
   el.innerHTML=`
     <span class="ic"><img loading="lazy" src="${favicon(t.url)}" alt="" onerror="this.style.display='none';this.parentNode.innerHTML='<span class=&quot;fb&quot;>${initial}</span>'"></span>
     <span class="lb">${esc(t.label||h)}</span>
-    ${showCat?`<span class="catlabel">${esc(c.name)}</span>`:''}
+    ${opts.catName?`<span class="catlabel">${esc(opts.catName)}</span>`:''}
     <span class="edithandles">
+      ${openFolder!=null?`<button class="mini out" title="Sortir du dossier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`:''}
       <button class="mini ed" title="Modifier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
       <button class="mini del" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg></button>
     </span>`;
-  if(editing){
-    el.querySelector('.ed').onclick=e=>{e.stopPropagation();openTile('edit',ci,ti);};
-    el.querySelector('.del').onclick=e=>{e.stopPropagation();delTile(ci,ti);};
-    el.draggable=true;
-    el.addEventListener('dragstart',e=>{drag={ci,ti};el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    el.addEventListener('dragend',()=>{el.classList.remove('dragging');$$('.tile').forEach(x=>x.classList.remove('dropbefore'));});
+  if(live){
+    el.querySelector('.ed').onclick=e=>{e.stopPropagation();openTile('edit',ti);};
+    el.querySelector('.del').onclick=e=>{e.stopPropagation();delTile(ti);};
+    const ob=el.querySelector('.out'); if(ob) ob.onclick=e=>{e.stopPropagation();moveOut(ti);};
+    attachDrag(el,ti);
     el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dropbefore');});
     el.addEventListener('dragleave',()=>el.classList.remove('dropbefore'));
-    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dropbefore');dropTile(ci,ti);});
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dropbefore');dropOnTile(ti);});
   }
   return el;
 }
+
+function folderTile(f,ti){
+  const el=document.createElement('div'); el.className='tile folder'; el.style.cursor='pointer';
+  el.style.setProperty('--tc','var(--brass)');
+  el.innerHTML=`
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span>
+    <span class="lb">${esc(f.label||'Dossier')}</span>
+    <span class="fcount">${f.tiles.length}</span>
+    <span class="edithandles">
+      <button class="mini ed" title="Renommer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="mini del" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg></button>
+    </span>`;
+  el.onclick=e=>{ if(e.target.closest('.edithandles'))return; openFolder=ti; render(); };
+  if(editing){
+    el.querySelector('.ed').onclick=e=>{e.stopPropagation();renameFolder(ti);};
+    el.querySelector('.del').onclick=e=>{e.stopPropagation();delFolder(ti);};
+    attachDrag(el,ti);
+    el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add(drag&&!drag.isFolder?'dropinto':'dropbefore');});
+    el.addEventListener('dragleave',()=>el.classList.remove('dropbefore','dropinto'));
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dropbefore','dropinto'); if(drag&&!drag.isFolder) moveIntoFolder(ti); else dropOnTile(ti);});
+  }
+  return el;
+}
+
+function match(t,q){ return (t.label||'').toLowerCase().includes(q)||(t.url||'').toLowerCase().includes(q); }
 
 function renderCategory(){
   const c=data.categories[activeCat];
   const s=$('#stage'); s.innerHTML='';
   if(!c){ s.innerHTML='<div class="empty">Aucune catégorie. Passe en mode édition pour en créer une.</div>'; return; }
+  const inFolder = openFolder!=null && isFolder(c.tiles[openFolder]);
+  const list = inFolder ? c.tiles[openFolder].tiles : c.tiles;
   const bar=document.createElement('div'); bar.className='secbar';
-  bar.innerHTML=`<div class="secname">${esc(c.name)}</div><div style="display:flex;gap:8px;align-items:center">
-    <span class="secmeta">${c.tiles.length} tuile${c.tiles.length>1?'s':''}</span>
-    ${editing?`<button class="rename">Renommer</button><button class="bgbtn">Fond</button><button class="delcat">Supprimer</button>`:''}</div>`;
-  s.appendChild(bar);
-  if(editing){ bar.querySelector('.rename').onclick=()=>renameCategory(activeCat); bar.querySelector('.bgbtn').onclick=()=>openBg(activeCat); bar.querySelector('.delcat').onclick=()=>delCategory(activeCat); }
+
+  if(inFolder){
+    const f=c.tiles[openFolder];
+    bar.innerHTML=`<div class="secname"><button class="backbtn" title="Retour">‹</button>${esc(c.name)} <span class="crumbsep">/</span> ${esc(f.label)}</div><div style="display:flex;gap:8px;align-items:center">
+      <span class="secmeta">${f.tiles.length} tuile${f.tiles.length>1?'s':''}</span>
+      ${editing?`<button class="rename">Renommer</button><button class="delcat">Supprimer</button>`:''}</div>`;
+    s.appendChild(bar);
+    bar.querySelector('.backbtn').onclick=()=>{openFolder=null; render();};
+    if(editing){ bar.querySelector('.rename').onclick=()=>renameFolder(openFolder); bar.querySelector('.delcat').onclick=()=>delFolder(openFolder); }
+  } else {
+    bar.innerHTML=`<div class="secname">${esc(c.name)}</div><div style="display:flex;gap:8px;align-items:center">
+      <span class="secmeta">${c.tiles.length} élément${c.tiles.length>1?'s':''}</span>
+      ${editing?`<button class="rename">Renommer</button><button class="bgbtn">Fond</button><button class="delcat">Supprimer</button>`:''}</div>`;
+    s.appendChild(bar);
+    if(editing){ bar.querySelector('.rename').onclick=()=>renameCategory(activeCat); bar.querySelector('.bgbtn').onclick=()=>openBg(activeCat); bar.querySelector('.delcat').onclick=()=>delCategory(activeCat); }
+  }
+
   const g=document.createElement('div'); g.className='grid';
-  c.tiles.forEach((t,ti)=>g.appendChild(tileEl(c,activeCat,t,ti,false)));
-  const add=document.createElement('button'); add.className='addtile';
-  add.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Ajouter';
-  add.onclick=()=>openTile('add',activeCat);
-  g.appendChild(add);
+  list.forEach((t,ti)=> g.appendChild((!inFolder&&isFolder(t))?folderTile(t,ti):linkTile(t,ti,{})) );
+  if(editing){
+    const add=document.createElement('button'); add.className='addtile';
+    add.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Tuile';
+    add.onclick=()=>openTile('add');
+    g.appendChild(add);
+    if(!inFolder){
+      const af=document.createElement('button'); af.className='addtile addfolder';
+      af.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>Dossier';
+      af.onclick=addFolder;
+      g.appendChild(af);
+    }
+  }
   s.appendChild(g);
 }
 
@@ -410,38 +483,54 @@ function renderFilter(q){
   document.body.classList.add('filtering');
   const s=$('#stage'); s.innerHTML='';
   const hits=[];
-  data.categories.forEach((c,ci)=>c.tiles.forEach((t,ti)=>{
-    if((t.label||'').toLowerCase().includes(q)||(t.url||'').toLowerCase().includes(q)) hits.push({c,ci,t,ti});
-  }));
+  data.categories.forEach(c=>{
+    c.tiles.forEach(t=>{
+      if(isFolder(t)){ t.tiles.forEach(x=>{ if(match(x,q)) hits.push({t:x,cat:c.name+' · '+t.label}); }); }
+      else if(match(t,q)) hits.push({t,cat:c.name});
+    });
+  });
   const head=document.createElement('div'); head.className='fresult';
   head.innerHTML=hits.length?`<b>${hits.length}</b> résultat${hits.length>1?'s':''} pour « ${esc(q)} »`:`Aucune tuile pour « ${esc(q)} » — appuie sur Entrée pour chercher sur le web.`;
   s.appendChild(head);
   if(hits.length){
     const g=document.createElement('div'); g.className='grid';
-    hits.forEach(h=>g.appendChild(tileEl(h.c,h.ci,h.t,h.ti,true)));
+    hits.forEach(h=>g.appendChild(linkTile(h.t,-1,{plain:true,catName:h.cat})));
     s.appendChild(g);
   }
 }
 
-/* ---------- drag reorder ---------- */
-let drag=null;
-function dropTile(ci,ti){
-  if(!drag||drag.ci!==ci) return; // reorder within same category only
-  const arr=data.categories[ci].tiles;
-  const [m]=arr.splice(drag.ti,1);
+/* ---------- drag / reorder / move ---------- */
+function dropOnTile(ti){
+  if(!drag) return; const list=curList();
+  const [m]=list.splice(drag.ti,1);
   let idx=ti; if(drag.ti<ti) idx=ti-1;
-  arr.splice(idx,0,m);
+  list.splice(idx,0,m);
   drag=null; markDirty(); cacheLocal(); render();
 }
+function moveIntoFolder(fi){
+  const c=data.categories[activeCat]; if(openFolder!=null){drag=null;return;}
+  if(!drag||drag.ti===fi){drag=null;return;}
+  const folder=c.tiles[fi]; if(!isFolder(folder)){drag=null;return;}
+  const [m]=c.tiles.splice(drag.ti,1);
+  folder.tiles.push(m);
+  drag=null; markDirty(); cacheLocal(); render();
+}
+function moveOut(ti){
+  const c=data.categories[activeCat]; if(openFolder==null) return;
+  const folder=c.tiles[openFolder];
+  const [m]=folder.tiles.splice(ti,1);
+  c.tiles.splice(openFolder+1,0,m);
+  markDirty(); cacheLocal(); render();
+}
 
-/* ---------- tile CRUD ---------- */
-function openTile(mode,ci,ti){
-  tileModal={mode,ci,ti:ti??-1};
+/* ---------- tile CRUD (current list) ---------- */
+function openTile(mode,ti){
+  tileModal={mode,ti:ti??-1};
   const isEdit=mode==='edit';
   $('#tileTitle').textContent=isEdit?'Modifier la tuile':'Nouvelle tuile';
-  $('#tileLede').textContent=isEdit?'Change le nom ou l’adresse de ce raccourci.':`Ajoute un raccourci à « ${data.categories[ci].name} ».`;
+  $('#tileLede').textContent=isEdit?'Change le nom ou l’adresse de ce raccourci.':`Ajoute un raccourci à « ${curFolderName()} ».`;
   $('#tOk').textContent=isEdit?'Enregistrer':'Ajouter';
-  const t=isEdit?data.categories[ci].tiles[ti]:{label:'',url:''};
+  const t=isEdit?curList()[ti]:{label:'',url:''};
   $('#tLabel').value=t.label||''; $('#tUrl').value=t.url||'';
   $('#tileScrim').classList.add('open'); setTimeout(()=>$('#tUrl').value?$('#tLabel').focus():$('#tUrl').focus(),30);
 }
@@ -450,22 +539,41 @@ function saveTile(){
   let url=$('#tUrl').value.trim(); if(!url){$('#tUrl').focus();return;}
   if(!/^https?:\/\//i.test(url)) url='https://'+url;
   let label=$('#tLabel').value.trim()||host(url);
-  const {mode,ci,ti}=tileModal;
-  if(mode==='edit'){ data.categories[ci].tiles[ti]={...data.categories[ci].tiles[ti],label,url}; }
-  else{ data.categories[ci].tiles.push({id:'t'+Date.now(),label,url}); }
+  const {mode,ti}=tileModal; const list=curList();
+  if(mode==='edit'){ list[ti]={...list[ti],label,url}; }
+  else{ list.push({id:'t'+Date.now(),label,url}); }
   closeTile(); markDirty(); cacheLocal(); render();
 }
-function delTile(ci,ti){
-  const t=data.categories[ci].tiles[ti];
+function delTile(ti){
+  const list=curList(); const t=list[ti];
   if(!confirm(`Supprimer « ${t.label||host(t.url)} » ?`)) return;
-  data.categories[ci].tiles.splice(ti,1); markDirty(); cacheLocal(); render();
+  list.splice(ti,1); markDirty(); cacheLocal(); render();
+}
+
+/* ---------- folder CRUD ---------- */
+function addFolder(){
+  const name=prompt('Nom du dossier :'); if(!name) return;
+  data.categories[activeCat].tiles.push({id:'f'+Date.now(),type:'folder',label:name.trim(),tiles:[]});
+  markDirty(); cacheLocal(); render();
+}
+function renameFolder(fi){
+  const f=data.categories[activeCat].tiles[fi]; const name=prompt('Renommer le dossier :',f.label); if(!name) return;
+  f.label=name.trim(); markDirty(); cacheLocal(); render();
+}
+function delFolder(fi){
+  const c=data.categories[activeCat]; const f=c.tiles[fi]; const n=f.tiles.length;
+  const msg=n?`Supprimer le dossier « ${f.label} » ? Ses ${n} tuiles seront replacées dans « ${c.name} ».`:`Supprimer le dossier « ${f.label} » ?`;
+  if(!confirm(msg)) return;
+  c.tiles.splice(fi,1,...f.tiles);
+  if(openFolder===fi) openFolder=null;
+  markDirty(); cacheLocal(); render();
 }
 
 /* ---------- category CRUD ---------- */
 function addCategory(){
   const name=prompt('Nom de la nouvelle catégorie :'); if(!name) return;
   data.categories.push({id:'c'+Date.now(),name:name.trim(),tiles:[]});
-  activeCat=data.categories.length-1; markDirty(); cacheLocal(); render();
+  activeCat=data.categories.length-1; openFolder=null; markDirty(); cacheLocal(); render();
 }
 function renameCategory(i){
   const name=prompt('Renommer la catégorie :',data.categories[i].name); if(!name) return;
@@ -474,7 +582,7 @@ function renameCategory(i){
 function delCategory(i){
   const c=data.categories[i];
   if(!confirm(`Supprimer la catégorie « ${c.name} » et ses ${c.tiles.length} tuiles ?`)) return;
-  data.categories.splice(i,1); activeCat=Math.max(0,activeCat-1); markDirty(); cacheLocal(); render();
+  data.categories.splice(i,1); activeCat=Math.max(0,activeCat-1); openFolder=null; markDirty(); cacheLocal(); render();
 }
 
 /* ---------- category backgrounds ---------- */
