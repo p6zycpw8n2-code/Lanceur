@@ -1,11 +1,17 @@
 {
   "version": 1,
-  "updated": "2026-07-12T17:17:44.528374Z",
+  "updated": "2026-07-13T17:36:52.914Z",
   "categories": [
     {
       "id": "c1",
       "name": "Quotidien",
       "tiles": [
+        {
+          "id": "f1783964195112",
+          "type": "folder",
+          "label": "NEWS",
+          "tiles": []
+        },
         {
           "id": "t1-1",
           "label": "Etsy",
