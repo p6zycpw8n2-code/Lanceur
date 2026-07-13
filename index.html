@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lanceur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14110E; --ink-2:#1C1813; --ink-3:#262019; --raise:#2E2720;
+    --parchment:#EDE6D8; --muted:#9C9081; --faint:#6B6155;
+    --brass:#C9A24B; --brass-soft:rgba(201,162,75,.14); --brass-line:rgba(201,162,75,.35);
+    --line:rgba(237,230,216,.09); --line-2:rgba(237,230,216,.16);
+    --danger:#C4623F;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--ink); color:var(--parchment); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; min-height:100%;
+    background-image:radial-gradient(ellipse 60% 40% at 50% -5%, rgba(201,162,75,.10), transparent 70%);
+  }
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+  ::selection{background:var(--brass-soft)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 80px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .mark{font-family:var(--serif);font-weight:400;font-size:19px;letter-spacing:.02em;color:var(--parchment);display:flex;align-items:center;gap:10px}
+  .mark .dot{width:7px;height:7px;border-radius:50%;background:var(--brass);box-shadow:0 0 12px 2px rgba(201,162,75,.5)}
+  .top-actions{display:flex;gap:8px;align-items:center}
+  .icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:.18s}
+  .icon-btn:hover{color:var(--parchment);border-color:var(--line-2);background:var(--ink-2)}
+  .icon-btn.on{color:var(--brass);border-color:var(--brass-line);background:var(--brass-soft)}
+  .icon-btn svg{width:18px;height:18px}
+
+  /* hero */
+  .hero{text-align:center;padding:46px 0 30px}
+  .clock{font-family:var(--serif);font-weight:300;font-size:clamp(56px,11vw,104px);line-height:.98;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .clock .sec{color:var(--brass);font-size:.42em;vertical-align:middle;font-weight:400;margin-left:.12em}
+  .sub{margin-top:12px;color:var(--muted);font-size:14.5px;letter-spacing:.04em}
+  .sub .greet{color:var(--parchment)}
+
+  /* search */
+  .search{margin:26px auto 6px;max-width:620px;position:relative}
+  .search input{
+    width:100%;height:54px;border-radius:14px;background:var(--ink-2);
+    border:1px solid var(--line);color:var(--parchment);font-size:16px;
+    padding:0 52px 0 20px;transition:.18s;outline:none;
+  }
+  .search input::placeholder{color:var(--faint)}
+  .search input:focus{border-color:var(--brass-line);background:var(--ink-3);box-shadow:0 0 0 4px var(--brass-soft)}
+  .search .go{position:absolute;right:8px;top:8px;width:38px;height:38px;border-radius:10px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .search .go:hover{color:var(--brass)}
+  .search .hint{position:absolute;right:56px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--faint);pointer-events:none;letter-spacing:.03em}
+
+  /* tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:26px auto 4px;max-width:1000px}
+  .tab{
+    padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+    color:var(--muted);font-size:13px;font-weight:500;letter-spacing:.01em;transition:.15s;white-space:nowrap;
+    display:flex;align-items:center;gap:7px;
+  }
+  .tab:hover{color:var(--parchment);border-color:var(--line-2)}
+  .tab.active{color:var(--ink);background:var(--brass);border-color:var(--brass);font-weight:600}
+  .tab .n{font-size:11px;opacity:.7}
+  .tab.active .n{opacity:.65}
+  .tab.addcat{color:var(--faint);border-style:dashed}
+  .tab.addcat:hover{color:var(--brass);border-color:var(--brass-line)}
+
+  /* section title */
+  .secbar{display:flex;align-items:baseline;justify-content:space-between;margin:34px 4px 16px;gap:12px}
+  .secname{font-family:var(--serif);font-size:26px;font-weight:400;display:flex;align-items:center;gap:12px}
+  .secmeta{color:var(--faint);font-size:12.5px;letter-spacing:.04em}
+  .rename{color:var(--faint);font-size:12px;border:1px solid var(--line);padding:3px 9px;border-radius:7px}
+  .rename:hover{color:var(--parchment);border-color:var(--line-2)}
+  .delcat{color:var(--danger);font-size:12px;border:1px solid rgba(196,98,63,.25);padding:3px 9px;border-radius:7px}
+  .delcat:hover{background:rgba(196,98,63,.12)}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
+  .tile{
+    position:relative;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+    padding:16px 12px 13px;display:flex;flex-direction:column;align-items:center;gap:11px;
+    text-align:center;transition:.16s;min-height:104px;justify-content:center;overflow:hidden;
+  }
+  .tile:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc,#C9A24B);opacity:.85}
+  .tile:hover{transform:translateY(-3px);border-color:var(--line-2);background:var(--ink-3);box-shadow:0 10px 26px -12px rgba(0,0,0,.7)}
+  .tile .ic{width:34px;height:34px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
+  .tile .ic img{width:100%;height:100%;object-fit:contain}
+  .tile .ic .fb{font-family:var(--serif);font-weight:500;font-size:18px;color:#1a1a1a}
+  .tile .lb{font-size:12.5px;line-height:1.25;color:var(--parchment);font-weight:500;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+
+  /* edit affordances */
+  .tile .edithandles{position:absolute;top:6px;right:6px;display:none;gap:4px}
+  body.editing .tile .edithandles{display:flex}
+  .tile .mini{width:22px;height:22px;border-radius:6px;background:rgba(20,17,14,.82);border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .tile .mini:hover{color:var(--parchment)}
+  .tile .mini.del:hover{color:var(--danger)}
+  .tile .mini svg{width:12px;height:12px}
+  body.editing .tile{cursor:grab}
+  body.editing .tile:active{cursor:grabbing}
+  .tile.dragging{opacity:.4}
+  .tile.dropbefore{box-shadow:-3px 0 0 var(--brass)}
+  .addtile{
+    border:1px dashed var(--line-2);background:transparent;color:var(--faint);
+    border-radius:14px;min-height:104px;display:none;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:12.5px;transition:.15s
+  }
+  body.editing .addtile{display:flex}
+  .addtile:hover{color:var(--brass);border-color:var(--brass-line)}
+  .addtile svg{width:20px;height:20px}
+
+  .empty{color:var(--faint);text-align:center;padding:50px 0;font-size:14px}
+
+  /* filter results header */
+  .fresult{color:var(--muted);font-size:13px;margin:30px 4px 14px;letter-spacing:.02em}
+  .fresult b{color:var(--parchment);font-weight:600}
+  .tile .catlabel{position:absolute;bottom:5px;left:0;right:0;font-size:9.5px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;display:none}
+  body.filtering .tile{padding-bottom:20px}
+  body.filtering .tile .catlabel{display:block}
+
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(8,6,4,.68);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .scrim.open{display:flex}
+  .modal{background:var(--ink-2);border:1px solid var(--line-2);border-radius:18px;width:100%;max-width:440px;padding:26px;box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+  .modal h2{font-family:var(--serif);font-weight:400;font-size:22px;margin-bottom:5px}
+  .modal p.lede{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+  .field input{width:100%;height:44px;border-radius:10px;background:var(--ink);border:1px solid var(--line);color:var(--parchment);padding:0 13px;font-size:14px;outline:none}
+  .field input:focus{border-color:var(--brass-line);box-shadow:0 0 0 3px var(--brass-soft)}
+  .field .help{font-size:11.5px;color:var(--faint);margin-top:5px;line-height:1.45}
+  .row2{display:flex;gap:10px}
+  .row2 .field{flex:1}
+  .mactions{display:flex;gap:10px;margin-top:22px}
+  .btn{flex:1;height:46px;border-radius:11px;font-size:14px;font-weight:600;letter-spacing:.01em;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn.primary{background:var(--brass);color:var(--ink)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.ghost{background:transparent;border:1px solid var(--line-2);color:var(--muted)}
+  .btn.ghost:hover{color:var(--parchment)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .statusline{font-size:12.5px;margin-top:14px;text-align:center;min-height:16px;letter-spacing:.02em}
+  .statusline.ok{color:var(--brass)} .statusline.err{color:var(--danger)} .statusline.info{color:var(--muted)}
+  .divider{height:1px;background:var(--line);margin:20px 0}
+  .linkrow{display:flex;gap:14px;justify-content:center;margin-top:6px}
+  .linkrow button{font-size:12.5px;color:var(--faint)} .linkrow button:hover{color:var(--parchment)}
+
+  /* save banner */
+  .savebar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+    background:var(--ink-3);border:1px solid var(--brass-line);border-radius:13px;padding:11px 14px 11px 18px;
+    display:flex;align-items:center;gap:14px;box-shadow:0 18px 50px -14px rgba(0,0,0,.8);transition:.25s;z-index:40}
+  .savebar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .savebar .t{font-size:13px;color:var(--parchment)}
+  .savebar .t small{display:block;color:var(--faint);font-size:11px;margin-top:1px}
+  .savebar button{height:36px;padding:0 15px;border-radius:9px;font-size:13px;font-weight:600}
+  .savebar .sv{background:var(--brass);color:var(--ink)}
+  .savebar .lc{color:var(--muted);border:1px solid var(--line-2)}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink-3);border:1px solid var(--line-2);color:var(--parchment);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:560px){
+    .wrap{padding:16px 15px 80px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+    .hero{padding:30px 0 18px}
+    .tabs{justify-content:flex-start}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="mark"><span class="dot"></span>Lanceur</div>
+    <div class="top-actions">
+      <button class="icon-btn" id="editBtn" title="Éditer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="icon-btn" id="cfgBtn" title="Réglages & synchro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7a1.6 1.6 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7a1.6 1.6 0 0 0 1.5 1H23a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="clock" id="clock">--:--</div>
+    <div class="sub"><span class="greet" id="greet">Bonsoir</span> · <span id="date"></span></div>
+  </div>
+
+  <div class="search">
+    <input id="q" type="text" placeholder="Filtrer mes tuiles… ou Entrée pour chercher sur le web" autocomplete="off" spellcheck="false">
+    <span class="hint" id="qhint">↵ web</span>
+    <button class="go" id="goBtn" title="Rechercher sur le web">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+    </button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="stage"></div>
+</div>
+
+<!-- config modal -->
+<div class="scrim" id="cfgScrim">
+  <div class="modal">
+    <h2>Réglages &amp; synchro</h2>
+    <p class="lede">Ton lanceur fonctionne déjà tout seul sur cet appareil. Pour retrouver tes tuiles partout et enregistrer tes ajouts, connecte-le à ton dépôt GitHub avec un jeton — collé une seule fois par appareil, jamais publié.</p>
+    <div class="row2">
+      <div class="field"><label>Utilisateur GitHub</label><input id="cfgOwner" placeholder="ton-pseudo" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>Dépôt</label><input id="cfgRepo" placeholder="lanceur" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <div class="row2">
+      <div class="field" style="flex:.6"><label>Branche</label><input id="cfgBranch" placeholder="main" autocomplete="off" spellcheck="false"></div>
+      <div class="field" style="flex:1.4"><label>Jeton d'accès (fine-grained)</label><input id="cfgToken" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <div class="field" style="margin-top:-6px"><div class="help">Le jeton n'a besoin que d'un accès <b>Contents · lecture et écriture</b> sur ce seul dépôt. Il reste stocké sur cet appareil (localStorage) et n'apparaît jamais dans la page publique.</div></div>
+    <div class="mactions">
+      <button class="btn ghost" id="cfgClose">Fermer</button>
+      <button class="btn primary" id="cfgSave">Connecter</button>
+    </div>
+    <div class="statusline info" id="cfgStatus"></div>
+    <div class="divider"></div>
+    <div class="linkrow">
+      <button id="expBtn">Exporter en JSON</button>
+      <button id="impBtn">Importer un JSON</button>
+      <button id="reloadBtn">Recharger depuis GitHub</button>
+    </div>
+    <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+  </div>
+</div>
+
+<!-- tile edit modal -->
+<div class="scrim" id="tileScrim">
+  <div class="modal">
+    <h2 id="tileTitle">Nouvelle tuile</h2>
+    <p class="lede" id="tileLede">Ajoute un raccourci à cette catégorie.</p>
+    <div class="field"><label>Nom</label><input id="tLabel" placeholder="Ex. Trello" autocomplete="off"></div>
+    <div class="field"><label>Adresse (URL)</label><input id="tUrl" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+    <div class="mactions">
+      <button class="btn ghost" id="tCancel">Annuler</button>
+      <button class="btn primary" id="tOk">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="savebar" id="saveBar">
+  <div class="t">Modifications non enregistrées<small id="saveSub">Sauvegardées sur cet appareil</small></div>
+  <button class="lc" id="saveLater">Plus tard</button>
+  <button class="sv" id="savePush">Enregistrer sur GitHub</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const LS_DATA='lanceur_data_v1', LS_CFG='lanceur_cfg_v1', LS_ACTIVE='lanceur_active_v1';
+let data={version:1,categories:[]};
+let cfg={owner:'',repo:'',branch:'main',token:''};
+let activeCat=0, dirty=false, editing=false, sha=null;
+let tileModal={mode:'add',ci:0,ti:-1};
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- colour from domain ---------- */
+function host(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u||'';}}
+function hue(str){let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;return h%360;}
+function tileColor(u){return `hsl(${hue(host(u))} 46% 56%)`;}
+function favicon(u){const h=host(u);return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(h)}&sz=64`;}
+
+/* ---------- clock ---------- */
+function tick(){
+  const n=new Date();
+  const hh=String(n.getHours()).padStart(2,'0'), mm=String(n.getMinutes()).padStart(2,'0'), ss=String(n.getSeconds()).padStart(2,'0');
+  $('#clock').innerHTML=`${hh}:${mm}<span class="sec">${ss}</span>`;
+  const h=n.getHours();
+  $('#greet').textContent = h<6?'Bonne nuit' : h<12?'Bonjour' : h<18?'Bon après-midi' : 'Bonsoir';
+  $('#date').textContent = n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+}
+setInterval(tick,1000); tick();
+
+/* ---------- persistence ---------- */
+function cacheLocal(){ try{localStorage.setItem(LS_DATA,JSON.stringify(data));}catch(e){} }
+function loadCfg(){ try{const c=JSON.parse(localStorage.getItem(LS_CFG)||'null'); if(c)cfg=Object.assign(cfg,c);}catch(e){} }
+function saveCfg(){ try{localStorage.setItem(LS_CFG,JSON.stringify(cfg));}catch(e){} }
+function markDirty(){ dirty=true; $('#saveBar').classList.add('show'); }
+function clearDirty(){ dirty=false; $('#saveBar').classList.remove('show'); }
+
+async function loadData(){
+  // 1) live copy served next to the app (always current after a save)
+  try{
+    const r=await fetch('./tiles.json?_='+Date.now(),{cache:'no-store'});
+    if(r.ok){ const j=await r.json(); if(j&&j.categories){ data=j; cacheLocal(); return 'file'; } }
+  }catch(e){}
+  // 2) local cache (offline / edited but unsynced)
+  try{ const c=JSON.parse(localStorage.getItem(LS_DATA)||'null'); if(c&&c.categories){ data=c; return 'cache'; } }catch(e){}
+  return 'empty';
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderTabs();
+  const q=$('#q').value.trim().toLowerCase();
+  if(q){ renderFilter(q); } else { document.body.classList.remove('filtering'); renderCategory(); }
+}
+
+function renderTabs(){
+  const t=$('#tabs'); t.innerHTML='';
+  data.categories.forEach((c,i)=>{
+    const b=document.createElement('button');
+    b.className='tab'+(i===activeCat?' active':'');
+    b.innerHTML=`${esc(c.name)} <span class="n">${c.tiles.length}</span>`;
+    b.onclick=()=>{activeCat=i; localStorage.setItem(LS_ACTIVE,String(i)); $('#q').value=''; syncHint(); render();};
+    t.appendChild(b);
+  });
+  if(editing){
+    const a=document.createElement('button');
+    a.className='tab addcat'; a.innerHTML='+ catégorie';
+    a.onclick=addCategory; t.appendChild(a);
+  }
+}
+
+function tileEl(c,ci,t,ti,showCat){
+  const el=document.createElement(editing?'div':'a');
+  el.className='tile';
+  if(!editing){ el.href=t.url; el.target='_blank'; el.rel='noopener'; }
+  el.style.setProperty('--tc',tileColor(t.url));
+  const h=host(t.url), initial=(t.label||h||'?').trim().charAt(0).toUpperCase();
+  el.innerHTML=`
+    <span class="ic"><img loading="lazy" src="${favicon(t.url)}" alt="" onerror="this.style.display='none';this.parentNode.innerHTML='<span class=&quot;fb&quot;>${initial}</span>'"></span>
+    <span class="lb">${esc(t.label||h)}</span>
+    ${showCat?`<span class="catlabel">${esc(c.name)}</span>`:''}
+    <span class="edithandles">
+      <button class="mini ed" title="Modifier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="mini del" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg></button>
+    </span>`;
+  if(editing){
+    el.querySelector('.ed').onclick=e=>{e.stopPropagation();openTile('edit',ci,ti);};
+    el.querySelector('.del').onclick=e=>{e.stopPropagation();delTile(ci,ti);};
+    el.draggable=true;
+    el.addEventListener('dragstart',e=>{drag={ci,ti};el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    el.addEventListener('dragend',()=>{el.classList.remove('dragging');$$('.tile').forEach(x=>x.classList.remove('dropbefore'));});
+    el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dropbefore');});
+    el.addEventListener('dragleave',()=>el.classList.remove('dropbefore'));
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dropbefore');dropTile(ci,ti);});
+  }
+  return el;
+}
+
+function renderCategory(){
+  const c=data.categories[activeCat];
+  const s=$('#stage'); s.innerHTML='';
+  if(!c){ s.innerHTML='<div class="empty">Aucune catégorie. Passe en mode édition pour en créer une.</div>'; return; }
+  const bar=document.createElement('div'); bar.className='secbar';
+  bar.innerHTML=`<div class="secname">${esc(c.name)}</div><div style="display:flex;gap:8px;align-items:center">
+    <span class="secmeta">${c.tiles.length} tuile${c.tiles.length>1?'s':''}</span>
+    ${editing?`<button class="rename">Renommer</button><button class="delcat">Supprimer</button>`:''}</div>`;
+  s.appendChild(bar);
+  if(editing){ bar.querySelector('.rename').onclick=()=>renameCategory(activeCat); bar.querySelector('.delcat').onclick=()=>delCategory(activeCat); }
+  const g=document.createElement('div'); g.className='grid';
+  c.tiles.forEach((t,ti)=>g.appendChild(tileEl(c,activeCat,t,ti,false)));
+  const add=document.createElement('button'); add.className='addtile';
+  add.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Ajouter';
+  add.onclick=()=>openTile('add',activeCat);
+  g.appendChild(add);
+  s.appendChild(g);
+}
+
+function renderFilter(q){
+  document.body.classList.add('filtering');
+  const s=$('#stage'); s.innerHTML='';
+  const hits=[];
+  data.categories.forEach((c,ci)=>c.tiles.forEach((t,ti)=>{
+    if((t.label||'').toLowerCase().includes(q)||(t.url||'').toLowerCase().includes(q)) hits.push({c,ci,t,ti});
+  }));
+  const head=document.createElement('div'); head.className='fresult';
+  head.innerHTML=hits.length?`<b>${hits.length}</b> résultat${hits.length>1?'s':''} pour « ${esc(q)} »`:`Aucune tuile pour « ${esc(q)} » — appuie sur Entrée pour chercher sur le web.`;
+  s.appendChild(head);
+  if(hits.length){
+    const g=document.createElement('div'); g.className='grid';
+    hits.forEach(h=>g.appendChild(tileEl(h.c,h.ci,h.t,h.ti,true)));
+    s.appendChild(g);
+  }
+}
+
+/* ---------- drag reorder ---------- */
+let drag=null;
+function dropTile(ci,ti){
+  if(!drag||drag.ci!==ci) return; // reorder within same category only
+  const arr=data.categories[ci].tiles;
+  const [m]=arr.splice(drag.ti,1);
+  let idx=ti; if(drag.ti<ti) idx=ti-1;
+  arr.splice(idx,0,m);
+  drag=null; markDirty(); cacheLocal(); render();
+}
+
+/* ---------- tile CRUD ---------- */
+function openTile(mode,ci,ti){
+  tileModal={mode,ci,ti:ti??-1};
+  const isEdit=mode==='edit';
+  $('#tileTitle').textContent=isEdit?'Modifier la tuile':'Nouvelle tuile';
+  $('#tileLede').textContent=isEdit?'Change le nom ou l’adresse de ce raccourci.':`Ajoute un raccourci à « ${data.categories[ci].name} ».`;
+  $('#tOk').textContent=isEdit?'Enregistrer':'Ajouter';
+  const t=isEdit?data.categories[ci].tiles[ti]:{label:'',url:''};
+  $('#tLabel').value=t.label||''; $('#tUrl').value=t.url||'';
+  $('#tileScrim').classList.add('open'); setTimeout(()=>$('#tUrl').value?$('#tLabel').focus():$('#tUrl').focus(),30);
+}
+function closeTile(){ $('#tileScrim').classList.remove('open'); }
+function saveTile(){
+  let url=$('#tUrl').value.trim(); if(!url){$('#tUrl').focus();return;}
+  if(!/^https?:\/\//i.test(url)) url='https://'+url;
+  let label=$('#tLabel').value.trim()||host(url);
+  const {mode,ci,ti}=tileModal;
+  if(mode==='edit'){ data.categories[ci].tiles[ti]={...data.categories[ci].tiles[ti],label,url}; }
+  else{ data.categories[ci].tiles.push({id:'t'+Date.now(),label,url}); }
+  closeTile(); markDirty(); cacheLocal(); render();
+}
+function delTile(ci,ti){
+  const t=data.categories[ci].tiles[ti];
+  if(!confirm(`Supprimer « ${t.label||host(t.url)} » ?`)) return;
+  data.categories[ci].tiles.splice(ti,1); markDirty(); cacheLocal(); render();
+}
+
+/* ---------- category CRUD ---------- */
+function addCategory(){
+  const name=prompt('Nom de la nouvelle catégorie :'); if(!name) return;
+  data.categories.push({id:'c'+Date.now(),name:name.trim(),tiles:[]});
+  activeCat=data.categories.length-1; markDirty(); cacheLocal(); render();
+}
+function renameCategory(i){
+  const name=prompt('Renommer la catégorie :',data.categories[i].name); if(!name) return;
+  data.categories[i].name=name.trim(); markDirty(); cacheLocal(); render();
+}
+function delCategory(i){
+  const c=data.categories[i];
+  if(!confirm(`Supprimer la catégorie « ${c.name} » et ses ${c.tiles.length} tuiles ?`)) return;
+  data.categories.splice(i,1); activeCat=Math.max(0,activeCat-1); markDirty(); cacheLocal(); render();
+}
+
+/* ---------- search box ---------- */
+function syncHint(){ $('#qhint').style.display=$('#q').value.trim()?'none':'block'; }
+$('#q').addEventListener('input',()=>{syncHint();render();});
+$('#q').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ const q=$('#q').value.trim(); if(q) window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); }
+  if(e.key==='Escape'){ $('#q').value=''; syncHint(); render(); }
+});
+$('#goBtn').onclick=()=>{ const q=$('#q').value.trim(); window.open(q?'https://www.google.com/search?q='+encodeURIComponent(q):'https://www.google.com','_blank'); };
+
+/* ---------- edit toggle ---------- */
+$('#editBtn').onclick=()=>{
+  editing=!editing; document.body.classList.toggle('editing',editing);
+  $('#editBtn').classList.toggle('on',editing);
+  if(editing&&$('#q').value){ $('#q').value=''; syncHint(); }
+  render();
+};
+
+/* ---------- config modal ---------- */
+function detectRepo(){
+  const m=location.hostname.match(/^([^.]+)\.github\.io$/);
+  if(!m) return {owner:'',repo:''};
+  const owner=m[1], seg=location.pathname.split('/').filter(Boolean);
+  return {owner, repo: seg.length?seg[0]:owner+'.github.io'};
+}
+function openCfg(){
+  const d=detectRepo();
+  $('#cfgOwner').value=cfg.owner||d.owner||'';
+  $('#cfgRepo').value=cfg.repo||d.repo||'lanceur';
+  $('#cfgBranch').value=cfg.branch||'main';
+  $('#cfgToken').value=cfg.token||'';
+  $('#cfgStatus').textContent=''; $('#cfgStatus').className='statusline info';
+  $('#cfgScrim').classList.add('open');
+}
+$('#cfgBtn').onclick=openCfg;
+$('#cfgClose').onclick=()=>$('#cfgScrim').classList.remove('open');
+$('#cfgSave').onclick=async()=>{
+  cfg.owner=$('#cfgOwner').value.trim(); cfg.repo=$('#cfgRepo').value.trim();
+  cfg.branch=$('#cfgBranch').value.trim()||'main'; cfg.token=$('#cfgToken').value.trim();
+  saveCfg();
+  const st=$('#cfgStatus');
+  if(!cfg.owner||!cfg.repo||!cfg.token){ st.className='statusline err'; st.textContent='Renseigne l’utilisateur, le dépôt et le jeton.'; return; }
+  st.className='statusline info'; st.textContent='Vérification du dépôt…';
+  const r=await ghGet();
+  if(r.ok){ st.className='statusline ok'; st.textContent='Connecté. Tu peux enregistrer tes modifications sur GitHub.'; }
+  else{ st.className='statusline err'; st.textContent=r.msg; }
+};
+$('#reloadBtn').onclick=async()=>{
+  const st=$('#cfgStatus'); st.className='statusline info'; st.textContent='Rechargement…';
+  const src=await loadData();
+  if(src==='file'){ clearDirty(); render(); st.className='statusline ok'; st.textContent='Tuiles rechargées depuis le dépôt.'; }
+  else{ st.className='statusline err'; st.textContent='Impossible de recharger tiles.json.'; }
+};
+$('#expBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tiles.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+};
+$('#impBtn').onclick=()=>$('#impFile').click();
+$('#impFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ try{ const j=JSON.parse(rd.result);
+    if(Array.isArray(j)){ data={version:1,categories:j.map((c,i)=>({id:'c'+i,name:c.cat||c.name,tiles:(c.tiles||[]).map((t,k)=>({id:'t'+i+'-'+k,label:t.label||t.l||'',url:t.url||t.u}))}))}; }
+    else if(j.categories){ data=j; }
+    else throw new Error('format');
+    activeCat=0; markDirty(); cacheLocal(); render(); toast('Import réussi');
+    $('#cfgScrim').classList.remove('open');
+  }catch(err){ toast('Fichier JSON invalide'); } };
+  rd.readAsText(f);
+};
+
+/* ---------- GitHub API ---------- */
+const b64=str=>btoa(unescape(encodeURIComponent(str)));
+function ghUrl(){ return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/tiles.json`; }
+async function ghGet(){
+  try{
+    const r=await fetch(ghUrl()+`?ref=${encodeURIComponent(cfg.branch)}`,{headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'}});
+    if(r.status===404){ sha=null; return {ok:true,new:true}; }
+    if(r.status===401||r.status===403){ return {ok:false,msg:'Jeton refusé — vérifie qu’il a l’accès Contents (lecture/écriture) sur ce dépôt.'}; }
+    if(!r.ok){ return {ok:false,msg:'Dépôt introuvable ('+r.status+') — vérifie l’utilisateur et le nom du dépôt.'}; }
+    const j=await r.json(); sha=j.sha; return {ok:true};
+  }catch(e){ return {ok:false,msg:'Erreur réseau. Réessaie.'}; }
+}
+async function ghPush(){
+  const sub=$('#saveSub');
+  if(!cfg.owner||!cfg.repo||!cfg.token){ openCfg(); $('#cfgStatus').className='statusline err'; $('#cfgStatus').textContent='Configure d’abord la connexion GitHub.'; return; }
+  $('#savePush').disabled=true; $('#savePush').textContent='Envoi…';
+  const g=await ghGet();
+  if(!g.ok){ toast(g.msg); $('#savePush').disabled=false; $('#savePush').textContent='Enregistrer sur GitHub'; return; }
+  data.updated=new Date().toISOString();
+  const body={message:'Mise à jour du lanceur',content:b64(JSON.stringify(data,null,2)),branch:cfg.branch};
+  if(sha) body.sha=sha;
+  try{
+    const r=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ const j=await r.json(); sha=j.content&&j.content.sha; clearDirty(); toast('Enregistré sur GitHub'); }
+    else{ const j=await r.json().catch(()=>({})); toast('Échec ('+r.status+') '+(j.message||'')); }
+  }catch(e){ toast('Erreur réseau lors de l’envoi'); }
+  $('#savePush').disabled=false; $('#savePush').textContent='Enregistrer sur GitHub';
+}
+$('#savePush').onclick=ghPush;
+$('#saveLater').onclick=()=>$('#saveBar').classList.remove('show');
+
+/* ---------- tile modal wiring ---------- */
+$('#tOk').onclick=saveTile; $('#tCancel').onclick=closeTile;
+$('#tUrl').addEventListener('keydown',e=>{if(e.key==='Enter')saveTile();});
+$('#tLabel').addEventListener('keydown',e=>{if(e.key==='Enter')$('#tUrl').focus();});
+$$('.scrim').forEach(s=>s.addEventListener('mousedown',e=>{if(e.target===s)s.classList.remove('open');}));
+
+/* ---------- toast ---------- */
+let toastT; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- boot ---------- */
+(async function boot(){
+  loadCfg();
+  const src=await loadData();
+  const a=parseInt(localStorage.getItem(LS_ACTIVE)||'0'); if(a>=0&&a<data.categories.length) activeCat=a;
+  syncHint(); render();
+  if(src==='empty'){ $('#stage').innerHTML='<div class="empty">Impossible de charger les tuiles. Vérifie que tiles.json est bien à côté de la page, ou importe ton fichier via les réglages.</div>'; }
+})();
+window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+</script>
+</body>
+</html>
