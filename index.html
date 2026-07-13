@@ -28,7 +28,11 @@
   input{font-family:inherit}
   ::selection{background:var(--brass-soft)}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 80px}
+  #bg{position:fixed;inset:0;z-index:-2;background:transparent;background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .45s,background .45s}
+  #bgOverlay{position:fixed;inset:0;z-index:-1;opacity:0;pointer-events:none;transition:opacity .45s;
+    background:linear-gradient(180deg,rgba(20,17,14,.80),rgba(20,17,14,.60) 42%,rgba(20,17,14,.84))}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 80px;position:relative}
 
   /* top bar */
   .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -152,6 +156,14 @@
   .linkrow{display:flex;gap:14px;justify-content:center;margin-top:6px}
   .linkrow button{font-size:12.5px;color:var(--faint)} .linkrow button:hover{color:var(--parchment)}
 
+  .bgbtn{color:var(--faint);font-size:12px;border:1px solid var(--line);padding:3px 9px;border-radius:7px}
+  .bgbtn:hover{color:var(--brass);border-color:var(--brass-line)}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px}
+  .swatch{height:62px;border-radius:11px;border:1px solid var(--line-2);cursor:pointer;position:relative;overflow:hidden;transition:.15s}
+  .swatch:hover{transform:translateY(-2px)}
+  .swatch.sel{outline:2px solid var(--brass);outline-offset:2px;border-color:transparent}
+  .swatch span{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--parchment);text-shadow:0 1px 5px rgba(0,0,0,.8);letter-spacing:.04em}
+
   /* save banner */
   .savebar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
     background:var(--ink-3);border:1px solid var(--brass-line);border-radius:13px;padding:11px 14px 11px 18px;
@@ -176,6 +188,7 @@
 </style>
 </head>
 <body>
+<div id="bg"></div><div id="bgOverlay"></div>
 <div class="wrap">
   <div class="top">
     <div class="mark"><span class="dot"></span>Lanceur</div>
@@ -250,6 +263,25 @@
   </div>
 </div>
 
+<!-- background modal -->
+<div class="scrim" id="bgScrim">
+  <div class="modal">
+    <h2 id="bgTitle">Fond de catégorie</h2>
+    <p class="lede">Choisis une ambiance, ou colle l’adresse d’une image. Le fond est propre à cette catégorie et se synchronise comme le reste.</p>
+    <div class="swatches" id="bgPresets"></div>
+    <div class="field" style="margin-top:16px">
+      <label>Image par URL (ou chemin dans le dépôt, ex. img/musique.jpg)</label>
+      <input id="bgUrl" placeholder="https://…  ou  img/…" autocomplete="off" spellcheck="false">
+      <div class="help">Astuce : dépose tes images dans un dossier <b>img/</b> de ton dépôt GitHub, puis écris simplement <b>img/nom.jpg</b> ici — elles seront servies avec le lanceur.</div>
+    </div>
+    <div class="mactions">
+      <button class="btn ghost" id="bgReset">Aucun (défaut)</button>
+      <button class="btn primary" id="bgApply">Appliquer l’image</button>
+    </div>
+    <div class="mactions" style="margin-top:10px"><button class="btn ghost" id="bgClose" style="flex:1">Fermer</button></div>
+  </div>
+</div>
+
 <div class="savebar" id="saveBar">
   <div class="t">Modifications non enregistrées<small id="saveSub">Sauvegardées sur cet appareil</small></div>
   <button class="lc" id="saveLater">Plus tard</button>
@@ -307,6 +339,7 @@ async function loadData(){
 /* ---------- render ---------- */
 function render(){
   renderTabs();
+  const ac=data.categories[activeCat]; applyBg(ac?ac.bg:'');
   const q=$('#q').value.trim().toLowerCase();
   if(q){ renderFilter(q); } else { document.body.classList.remove('filtering'); renderCategory(); }
 }
@@ -361,9 +394,9 @@ function renderCategory(){
   const bar=document.createElement('div'); bar.className='secbar';
   bar.innerHTML=`<div class="secname">${esc(c.name)}</div><div style="display:flex;gap:8px;align-items:center">
     <span class="secmeta">${c.tiles.length} tuile${c.tiles.length>1?'s':''}</span>
-    ${editing?`<button class="rename">Renommer</button><button class="delcat">Supprimer</button>`:''}</div>`;
+    ${editing?`<button class="rename">Renommer</button><button class="bgbtn">Fond</button><button class="delcat">Supprimer</button>`:''}</div>`;
   s.appendChild(bar);
-  if(editing){ bar.querySelector('.rename').onclick=()=>renameCategory(activeCat); bar.querySelector('.delcat').onclick=()=>delCategory(activeCat); }
+  if(editing){ bar.querySelector('.rename').onclick=()=>renameCategory(activeCat); bar.querySelector('.bgbtn').onclick=()=>openBg(activeCat); bar.querySelector('.delcat').onclick=()=>delCategory(activeCat); }
   const g=document.createElement('div'); g.className='grid';
   c.tiles.forEach((t,ti)=>g.appendChild(tileEl(c,activeCat,t,ti,false)));
   const add=document.createElement('button'); add.className='addtile';
@@ -443,6 +476,45 @@ function delCategory(i){
   if(!confirm(`Supprimer la catégorie « ${c.name} » et ses ${c.tiles.length} tuiles ?`)) return;
   data.categories.splice(i,1); activeCat=Math.max(0,activeCat-1); markDirty(); cacheLocal(); render();
 }
+
+/* ---------- category backgrounds ---------- */
+const BG_PRESETS=[
+  {n:'Défaut',v:''},
+  {n:'Crépuscule',v:'linear-gradient(160deg,#14110E,#2a1f16 60%,#3a2418)'},
+  {n:'Encre',v:'radial-gradient(120% 120% at 50% 0%,#1d2438,#0d0e14)'},
+  {n:'Forêt',v:'linear-gradient(160deg,#0f1310,#16241a 70%,#1d3324)'},
+  {n:'Prune',v:'linear-gradient(160deg,#14110E,#241a2b 65%,#33203e)'},
+  {n:'Océan',v:'linear-gradient(160deg,#0E1414,#132a30 70%,#194049)'},
+];
+function isImg(v){return /^https?:\/\//i.test(v)||/^img\//i.test(v)||/^\.?\//.test(v);}
+function applyBg(bg){
+  const b=$('#bg'), o=$('#bgOverlay');
+  if(!bg){ b.style.background='transparent'; o.style.opacity='0'; return; }
+  if(isImg(bg)){ b.style.background=`center/cover no-repeat url("${bg}")`; o.style.opacity='1'; }
+  else if(/gradient/i.test(bg)){ b.style.background=bg; o.style.opacity='.32'; }
+  else if(bg[0]==='#'){ b.style.background=bg; o.style.opacity='0'; }
+  else { b.style.background='transparent'; o.style.opacity='0'; }
+}
+let bgCat=0;
+function openBg(ci){
+  bgCat=ci; const cur=data.categories[ci].bg||'';
+  $('#bgTitle').textContent='Fond de « '+data.categories[ci].name+' »';
+  const box=$('#bgPresets'); box.innerHTML='';
+  BG_PRESETS.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='swatch'+(cur===p.v?' sel':'');
+    d.style.background=p.v||'linear-gradient(160deg,#221c16,#14110E)';
+    d.innerHTML=`<span>${p.n}</span>`;
+    d.onclick=()=>{ setBg(p.v); $$('#bgPresets .swatch').forEach(x=>x.classList.remove('sel')); d.classList.add('sel'); };
+    box.appendChild(d);
+  });
+  $('#bgUrl').value=isImg(cur)?cur:'';
+  $('#bgScrim').classList.add('open');
+}
+function setBg(v){ data.categories[bgCat].bg=v; markDirty(); cacheLocal(); if(bgCat===activeCat) applyBg(v); }
+$('#bgApply').onclick=()=>{ const u=$('#bgUrl').value.trim(); if(!u)return; setBg(u); $('#bgScrim').classList.remove('open'); render(); };
+$('#bgReset').onclick=()=>{ setBg(''); $('#bgScrim').classList.remove('open'); render(); };
+$('#bgClose').onclick=()=>{ $('#bgScrim').classList.remove('open'); render(); };
 
 /* ---------- search box ---------- */
 function syncHint(){ $('#qhint').style.display=$('#q').value.trim()?'none':'block'; }
