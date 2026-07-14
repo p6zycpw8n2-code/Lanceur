@@ -91,15 +91,15 @@
   .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
   .tile{
     position:relative;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
-    padding:16px 12px 13px;display:flex;flex-direction:column;align-items:center;gap:11px;
-    text-align:center;transition:.16s;min-height:104px;justify-content:center;overflow:hidden;
+    padding:0;display:flex;flex-direction:column;
+    text-align:center;transition:.16s;min-height:126px;overflow:hidden;
   }
-  .tile:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc,#C9A24B);opacity:.85}
-  .tile:hover{transform:translateY(-3px);border-color:var(--line-2);background:var(--ink-3);box-shadow:0 10px 26px -12px rgba(0,0,0,.7)}
-  .tile .ic{width:34px;height:34px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
-  .tile .ic img{width:100%;height:100%;object-fit:contain}
-  .tile .ic .fb{font-family:var(--serif);font-weight:500;font-size:18px;color:#1a1a1a}
-  .tile .lb{font-size:12.5px;line-height:1.25;color:var(--parchment);font-weight:500;
+  .tile:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc,#C9A24B);opacity:.9;z-index:2}
+  .tile:hover{transform:translateY(-3px);border-color:var(--line-2);box-shadow:0 10px 26px -12px rgba(0,0,0,.7)}
+  .tile .ic{flex:1;width:100%;background:#f4f1ea;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .tile .ic img{width:100%;height:100%;object-fit:contain;padding:15%}
+  .tile .ic .fb{font-family:var(--serif);font-weight:600;font-size:32px;color:#1a1a1a}
+  .tile .lb{padding:8px 8px 9px;font-size:11.5px;line-height:1.2;color:var(--parchment);font-weight:500;background:var(--ink-2);
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 
   /* edit affordances */
@@ -122,7 +122,7 @@
   .addtile svg{width:20px;height:20px}
 
   .tile.folder .ic{background:var(--brass-soft)}
-  .tile.folder .ic svg{width:22px;height:22px;color:var(--brass)}
+  .tile.folder .ic svg{width:34px;height:34px;color:var(--brass)}
   .tile.folder .fcount{position:absolute;top:7px;left:7px;font-size:10px;color:var(--brass);background:rgba(201,162,75,.12);border:1px solid var(--brass-line);border-radius:999px;padding:1px 6px;font-weight:600;line-height:1.5}
   .tile.dropinto{outline:2px solid var(--brass);outline-offset:2px;background:var(--brass-soft)}
   .backbtn{font-family:var(--sans);font-size:20px;line-height:1;color:var(--muted);border:1px solid var(--line);width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-right:2px;transition:.15s}
@@ -136,8 +136,7 @@
   /* filter results header */
   .fresult{color:var(--muted);font-size:13px;margin:30px 4px 14px;letter-spacing:.02em}
   .fresult b{color:var(--parchment);font-weight:600}
-  .tile .catlabel{position:absolute;bottom:5px;left:0;right:0;font-size:9.5px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;display:none}
-  body.filtering .tile{padding-bottom:20px}
+  .tile .catlabel{position:absolute;top:7px;left:7px;max-width:82%;font-size:9px;color:var(--parchment);background:rgba(20,17,14,.72);border-radius:5px;padding:1px 6px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none;z-index:2}
   body.filtering .tile .catlabel{display:block}
 
   /* modal */
@@ -319,6 +318,18 @@ function host(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){r
 function hue(str){let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;return h%360;}
 function tileColor(u){return `hsl(${hue(host(u))} 46% 56%)`;}
 function favicon(u){const h=host(u);return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(h)}&sz=64`;}
+function setIcon(ic,url,initial){
+  const h=host(url);
+  const sources=[
+    'https://logo.clearbit.com/'+encodeURIComponent(h)+'?size=200',
+    'https://www.google.com/s2/favicons?domain='+encodeURIComponent(h)+'&sz=128'
+  ];
+  let i=0;
+  const img=document.createElement('img'); img.loading='lazy'; img.alt='';
+  img.onerror=()=>{ i++; if(i<sources.length){ img.src=sources[i]; } else { ic.innerHTML='<span class="fb">'+esc(initial)+'</span>'; } };
+  img.src=sources[0];
+  ic.appendChild(img);
+}
 
 /* ---------- clock ---------- */
 function tick(){
@@ -393,7 +404,7 @@ function linkTile(t,ti,opts){
   el.style.setProperty('--tc',tileColor(t.url));
   const h=host(t.url), initial=(t.label||h||'?').trim().charAt(0).toUpperCase();
   el.innerHTML=`
-    <span class="ic"><img loading="lazy" src="${favicon(t.url)}" alt="" onerror="this.style.display='none';this.parentNode.innerHTML='<span class=&quot;fb&quot;>${initial}</span>'"></span>
+    <span class="ic"></span>
     <span class="lb">${esc(t.label||h)}</span>
     ${opts.catName?`<span class="catlabel">${esc(opts.catName)}</span>`:''}
     <span class="edithandles">
@@ -401,6 +412,7 @@ function linkTile(t,ti,opts){
       <button class="mini ed" title="Modifier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
       <button class="mini del" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg></button>
     </span>`;
+  setIcon(el.querySelector('.ic'), t.url, initial);
   if(live){
     el.querySelector('.ed').onclick=e=>{e.stopPropagation();openTile('edit',ti);};
     el.querySelector('.del').onclick=e=>{e.stopPropagation();delTile(ti);};
