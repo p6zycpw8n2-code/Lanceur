@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-14T04:02:25.961Z",
+  "updated": "2026-07-14T04:03:50.494Z",
   "categories": [
     {
       "id": "c1",
@@ -916,7 +916,8 @@
           "label": "Recherche-musiciens",
           "url": "https://www.recherche-musiciens.com/"
         }
-      ]
+      ],
+      "bg": "img/4062199.jpg"
     },
     {
       "id": "c4",
