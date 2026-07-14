@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-14T04:00:34.760Z",
+  "updated": "2026-07-14T04:02:25.961Z",
   "categories": [
     {
       "id": "c1",
@@ -11,6 +11,11 @@
           "type": "folder",
           "label": "NEWS",
           "tiles": []
+        },
+        {
+          "id": "t1784001652941",
+          "label": "Github-Lanceur",
+          "url": "https://github.com/p6zycpw8n2-code/Lanceur"
         },
         {
           "id": "t1-1",
@@ -674,7 +679,8 @@
           "label": "Accueil - Particulier | Géorisques",
           "url": "https://www.georisques.gouv.fr/"
         }
-      ]
+      ],
+      "bg": "img/842580.jpg"
     },
     {
       "id": "c3",
