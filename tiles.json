@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-14T04:03:50.494Z",
+  "updated": "2026-07-14T04:06:02.794Z",
   "categories": [
     {
       "id": "c1",
@@ -948,7 +948,8 @@
           "label": "Liste des gammes et",
           "url": "https://fr.wikipedia.org/wiki/Liste_des_gammes_et_modes"
         }
-      ]
+      ],
+      "bg": "img/wp1848981-opeth-wallpapers.jpg"
     },
     {
       "id": "c5",
