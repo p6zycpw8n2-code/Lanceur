@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-13T18:25:36.490Z",
+  "updated": "2026-07-14T04:00:34.760Z",
   "categories": [
     {
       "id": "c1",
@@ -53,16 +53,6 @@
           "url": "https://me-former.prestomarket.com/tr"
         },
         {
-          "id": "t1-9",
-          "label": "Rumble",
-          "url": "https://rumble.com/"
-        },
-        {
-          "id": "t1-10",
-          "label": "Ivacy",
-          "url": "https://member.ivacy.com/home"
-        },
-        {
           "id": "t1-11",
           "label": "Netflix",
           "url": "https://www.netflix.com/browse"
@@ -76,6 +66,16 @@
           "id": "t1-13",
           "label": "Disneyplus",
           "url": "https://www.disneyplus.com/home"
+        },
+        {
+          "id": "t1-9",
+          "label": "Rumble",
+          "url": "https://rumble.com/"
+        },
+        {
+          "id": "t1-10",
+          "label": "Ivacy",
+          "url": "https://member.ivacy.com/home"
         },
         {
           "id": "t1-14",
