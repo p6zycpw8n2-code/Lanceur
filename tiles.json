@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-14T04:06:02.794Z",
+  "updated": "2026-07-14T04:08:38.911Z",
   "categories": [
     {
       "id": "c1",
@@ -1235,7 +1235,8 @@
           "label": "Unification France -",
           "url": "http://www.unificationfrance.com/"
         }
-      ]
+      ],
+      "bg": "img/westworld-desert-robot-o8gh8b0fp1iwd4g5.jpg"
     },
     {
       "id": "c6",
