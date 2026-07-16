@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-16T04:43:39.461Z",
+  "updated": "2026-07-16T13:27:36.636Z",
   "categories": [
     {
       "id": "c1",
@@ -16,7 +16,13 @@
           "id": "f1784177009017",
           "type": "folder",
           "label": "IA",
-          "tiles": []
+          "tiles": [
+            {
+              "id": "t1784208452634",
+              "label": "OpenRouteur",
+              "url": "https://openrouter.ai/models?output_modalities=image"
+            }
+          ]
         },
         {
           "id": "t1784001652941",
